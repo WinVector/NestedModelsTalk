@@ -1,0 +1,154 @@
+---
+title: "H20 Stacking"
+author: "Nina Zumel"
+date: "October 18, 2016"
+output: 
+  md_document:
+    variant: markdown_github
+---
+
+This run looks slightly different every time; can't reliably set seed with parallel clusters.
+(Though the initial data partitioning will be the same).
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# install.packages("https://h2o-release.s3.amazonaws.com/h2o-ensemble/R/h2oEnsemble_0.1.8.tar.gz", repos = NULL)
+
+library(h2o)
+library(h2oEnsemble)
+library(foreign)
+library(WVPlots)  # install from github (link)
+library(vtreat)
+library(cvAUC)
+
+set.seed(12345)
+
+```
+
+
+Read in data. The target class is rare (~5%) so stratify the holdout set.
+
+```{r}
+# class is the outcome -- target is 1
+sdata = read.arff("seismic-bumps.arff")
+sdata$class = as.factor(sdata$class) # convert outcome to factor
+print(mean(sdata$class=="1"))
+
+y = "class"
+x = setdiff(colnames(sdata), y)
+
+N = nrow(sdata)
+
+# returns 2 lists of indices
+# intended to be used for partitioning data for
+# stratified n-fold cross val. 
+# 4-fold cross val: training set is 75% of data
+index = vtreat::kWayStratifiedY(N, 4, NULL, sdata$class)
+# get the indices from the first fold assignment
+istrain = seq_len(N) %in% index[[1]]$train  
+
+train = sdata[istrain,]
+test = sdata[!istrain,]
+print(mean(train$class=="1"))
+print(mean(test$class=="1"))
+```
+
+start h2o
+```{r}
+h2o.init()  # limited to 2 CPUs by default. use argument (nthreads=-1) to use all of them
+# cast data to H2OFrame
+train.h2o = as.h2o(train, destination_frame="train.h2o")
+test.h2o = as.h2o(test, destination_frame="test.h2o")
+```
+
+customize learners
+```{r}
+h2o.glm_nn <- function(..., non_negative = TRUE) {
+  h2o.glm.wrapper(..., non_negative = non_negative)
+}
+
+
+h2o.rf.1 = function(..., ntrees=200, categorical_encoding="OneHotExplicit") {
+  h2o.randomForest.wrapper(..., ntrees=ntrees, categorical_encoding=categorical_encoding)
+}
+
+h2o.gbm.1 = function(...,  categorical_encoding="OneHotExplicit") {
+  h2o.gbm.wrapper(..., categorical_encoding=categorical_encoding)
+}
+  
+  
+learner = c("h2o.glm.wrapper", "h2o.rf.1", "h2o.gbm.1", "h2o.deeplearning.wrapper")
+metalearner <- "h2o.glm_nn"
+```
+
+Stack a set of sublearners with non-negative glm
+```{r}
+
+# fit the model, 5-fold crossval
+fit <- h2o.ensemble(x = x, y = y,
+                    training_frame = train.h2o,
+                    family = "binomial",
+                    learner = learner,
+                    metalearner = metalearner,
+                    cvControl = list(V = 5))
+
+pred <- predict(fit, test.h2o)
+pred.df = as.data.frame(pred$pred)
+test$mlearn_glm_nn = pred.df$p1 # the probability of y==1 (vs y==0)
+ROCPlot(test, "mlearn_glm_nn", "class", 1, "Stacked model, glm_nn")
+
+
+```
+
+Examine base learners
+```{r}
+
+# examine metamodel
+fit$metafit
+
+# look at AUCs
+cvAUC::AUC(predictions = test$mlearn_glm_nn, labels=test$class)
+
+L <- length(learner)
+labels=test$class
+auc <- sapply(seq(L), function(l) cvAUC::AUC(predictions = as.data.frame(pred$basepred)[,l], labels = labels))
+data.frame(learner, auc)
+
+```
+
+```{r echo=FALSE, eval=FALSE}
+pred.base = as.data.frame(pred$basepred)
+
+results = cbind(test[, c("class", "mlearn_glm_nn")], pred.base)
+resultslong = tidyr::gather_(cbind(results, index=1:nrow(results)), key_col="learner", 
+                             value_col="pred",
+                            gather_cols=c("mlearn_glm_nn", learner))
+
+ggplot(resultslong, aes(x=pred, color=class)) + geom_density() + facet_wrap(~learner)
+
+for(l in learner) {
+  title = paste("Compare ensemble to base learner", l)
+  print(ROCPlotPair(results, "mlearn_glm_nn", l, "class", 1, title))
+}
+
+
+```
+
+
+Now try a complex metalearner -- not recommended.
+
+```{r}
+metalearner = "h2o.randomForest.wrapper"
+
+# refit base learners with new metalearner
+fit <- h2o.metalearn(fit, metalearner=metalearner)
+
+pred <- predict(fit, test.h2o)
+pred.df = as.data.frame(pred$pred)
+test$mlearn_RF = pred.df$p1 # the probability of y==1 (vs y==0)
+ROCPlot(test, "mlearn_RF", "class", 1, "Stacked model, random forest")
+ROCPlotPair(test, "mlearn_glm_nn", "mlearn_RF", "class", 1, "Compare metalearners")
+
+
+h2o.shutdown(prompt=FALSE)
+```
