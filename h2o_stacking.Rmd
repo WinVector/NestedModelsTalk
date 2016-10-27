@@ -12,12 +12,16 @@ This run looks slightly different every time; can't reliably set seed with paral
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+## Install h2oEnsemble
 # install.packages("https://h2o-release.s3.amazonaws.com/h2o-ensemble/R/h2oEnsemble_0.1.8.tar.gz", repos = NULL)
+## Install WVPlots from github
+# devtools::install_github('WinVector/WVPlots',build_vignettes=TRUE)
 
 library(h2o)
 library(h2oEnsemble)
 library(foreign)
-library(WVPlots)  # install from github (link)
+library(WVPlots)  
 library(vtreat)
 library(cvAUC)
 

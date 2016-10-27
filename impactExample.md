@@ -31,8 +31,6 @@ test = df[gp=="test",]
 Naive
 -----
 
-Crude data treatment on zip -- a lookup table of selling rate by zip on training
-
 ``` r
 bigtrain = rbind(train, cal)
 

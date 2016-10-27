@@ -9,6 +9,13 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+## Install WVPlots from github
+# devtools::install_github('WinVector/WVPlots',build_vignettes=TRUE)
+
+## Install sigr from github
+# devtools::install_github('WinVector/sigr')
+
 library(ggplot2)
 library(WVPlots)
 library(dplyr)
@@ -47,7 +54,6 @@ test = df[gp=="test",]
 
 ## Naive
 
-Crude data treatment on zip -- a lookup table of selling rate by zip on training
 ```{r}
 bigtrain = rbind(train, cal)
 

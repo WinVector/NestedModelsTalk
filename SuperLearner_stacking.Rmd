@@ -13,9 +13,12 @@ This run looks slightly different every time; can't reliably set seed with paral
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
+## Install WVPlots from github
+# devtools::install_github('WinVector/WVPlots',build_vignettes=TRUE)
+
 library(SuperLearner)
 library(foreign)
-library(WVPlots)  # install from github (link)
+library(WVPlots)  
 library(vtreat)
 library(cvAUC)
 
