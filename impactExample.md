@@ -126,6 +126,8 @@ report(mod1)
 
 **Apparent Complexity of ZIP (`zip-impact`)**
 
+The variance explained is lower, because the impact models were trained on `bigtrain`, not `train`, which actually reduces the overfitting. If we train the impact model on `train` then the results are nearly identical to `mod1`.
+
 ``` r
 mod2 = glm(sold~zip_impact, data=train, family=binomial)
 report(mod2)
