@@ -61,8 +61,14 @@ treatplan.naive = vtreat::designTreatmentsC(bigtrain, "zip",
                           outcomename="sold", 
                           outcometarget=TRUE, verbose=FALSE)
 
+treatplan.naivesmall = vtreat::designTreatmentsC(train, "zip", 
+                          outcomename="sold", 
+                          outcometarget=TRUE, verbose=FALSE)
+
 bigtrain$zip_impact = vtreat::prepare(treatplan.naive, bigtrain, pruneSig=NULL)[,"zip_catB"]
 train$zip_impact = vtreat::prepare(treatplan.naive, train, pruneSig=NULL)[,"zip_catB"]
+# for a downstream example
+train$zip_impactsmall = vtreat::prepare(treatplan.naivesmall, train, pruneSig=NULL)[,"zip_catB"]
 test$zip_impact = vtreat::prepare(treatplan.naive, test, pruneSig=NULL)[,"zip_catB"]
 
 ```
@@ -110,6 +116,9 @@ The variance explained is lower, because the impact models were trained on `bigt
 
 ```{r}
 mod2 = glm(sold~zip_impact, data=train, family=binomial)
+report(mod2)
+
+mod2 = glm(sold~zip_impactsmall, data=train, family=binomial)
 report(mod2)
 
 ```

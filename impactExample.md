@@ -38,8 +38,14 @@ treatplan.naive = vtreat::designTreatmentsC(bigtrain, "zip",
                           outcomename="sold", 
                           outcometarget=TRUE, verbose=FALSE)
 
+treatplan.naivesmall = vtreat::designTreatmentsC(train, "zip", 
+                          outcomename="sold", 
+                          outcometarget=TRUE, verbose=FALSE)
+
 bigtrain$zip_impact = vtreat::prepare(treatplan.naive, bigtrain, pruneSig=NULL)[,"zip_catB"]
 train$zip_impact = vtreat::prepare(treatplan.naive, train, pruneSig=NULL)[,"zip_catB"]
+# for a downstream example
+train$zip_impactsmall = vtreat::prepare(treatplan.naivesmall, train, pruneSig=NULL)[,"zip_catB"]
 test$zip_impact = vtreat::prepare(treatplan.naive, test, pruneSig=NULL)[,"zip_catB"]
 ```
 
@@ -137,6 +143,15 @@ report(mod2)
     ## [1] "% deviance explained: 7%"
     ## [1] "p-value on Chi^2 Test on model: 3.68e-10"
 
+``` r
+mod2 = glm(sold~zip_impactsmall, data=train, family=binomial)
+report(mod2)
+```
+
+    ## [1] "Complexity (degrees of freedom): 1"
+    ## [1] "% deviance explained: 20.8%"
+    ## [1] "p-value on Chi^2 Test on model: 3.05e-27"
+
 Calibration Set
 ---------------
 
@@ -223,21 +238,21 @@ summary(model)
     ## 
     ## Deviance Residuals: 
     ##     Min       1Q   Median       3Q      Max  
-    ## -2.1651  -1.0881   0.5653   1.0716   2.1697  
+    ## -2.1615  -1.0820   0.5808   1.0660   2.1606  
     ## 
     ## Coefficients:
-    ##             Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)  9.06774    1.01015   8.977   <2e-16 ***
-    ## log(price)  -0.74027    0.08266  -8.955   <2e-16 ***
-    ## zip_impact  -0.02156    0.02136  -1.010    0.313    
+    ##              Estimate Std. Error z value Pr(>|z|)    
+    ## (Intercept)  9.066955   1.009703   8.980   <2e-16 ***
+    ## log(price)  -0.739639   0.082618  -8.953   <2e-16 ***
+    ## zip_impact  -0.003623   0.020397  -0.178    0.859    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
     ## (Dispersion parameter for binomial family taken to be 1)
     ## 
     ##     Null deviance: 1116.8  on 805  degrees of freedom
-    ## Residual deviance: 1019.9  on 803  degrees of freedom
-    ## AIC: 1025.9
+    ## Residual deviance: 1020.9  on 803  degrees of freedom
+    ## AIC: 1026.9
     ## 
     ## Number of Fisher Scoring iterations: 4
 
@@ -313,22 +328,22 @@ summary(model)
     ##     data = bigtrain)
     ## 
     ## Deviance Residuals: 
-    ##     Min       1Q   Median       3Q      Max  
-    ## -2.1858  -1.0663   0.5383   1.0443   2.0833  
+    ##    Min      1Q  Median      3Q     Max  
+    ## -2.166  -1.068   0.517   1.031   2.161  
     ## 
     ## Coefficients:
     ##             Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)  8.92842    1.01532   8.794  < 2e-16 ***
-    ## log(price)  -0.72821    0.08305  -8.768  < 2e-16 ***
-    ## zip_impact   0.23622    0.06205   3.807 0.000141 ***
+    ## (Intercept)  9.00089    1.01931   8.830  < 2e-16 ***
+    ## log(price)  -0.73707    0.08341  -8.837  < 2e-16 ***
+    ## zip_impact   0.28591    0.06489   4.406 1.05e-05 ***
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
     ## (Dispersion parameter for binomial family taken to be 1)
     ## 
-    ##     Null deviance: 1116.8  on 805  degrees of freedom
-    ## Residual deviance: 1003.6  on 803  degrees of freedom
-    ## AIC: 1009.6
+    ##     Null deviance: 1116.75  on 805  degrees of freedom
+    ## Residual deviance:  998.24  on 803  degrees of freedom
+    ## AIC: 1004.2
     ## 
     ## Number of Fisher Scoring iterations: 4
 
